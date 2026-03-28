@@ -2,6 +2,7 @@ package com.example.entregable_retrofit
 
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -16,44 +17,60 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class Act1Activity : AppCompatActivity() {
-    
+
     private lateinit var recyclerView: RecyclerView
     private lateinit var btnCargar: Button
+    private lateinit var editTextCantidadPosts: EditText
     private lateinit var progressBar: ProgressBar
     private val postAdapter = PostAdapter()
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_act1)
-        
+
         recyclerView = findViewById(R.id.recyclerViewPosts)
         btnCargar = findViewById(R.id.btnCargar)
+        editTextCantidadPosts = findViewById(R.id.editTextCantidadPosts)
         progressBar = findViewById(R.id.progressBar)
-        
+
         // Configurar el RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = postAdapter
-        
+
         // Cargar los posts cuando se presiona el botón
         btnCargar.setOnClickListener {
             cargarPosts()
         }
     }
-    
+
     private fun cargarPosts() {
+        val textoCantidad = editTextCantidadPosts.text.toString().trim()
+        val cantidad = textoCantidad.toIntOrNull()
+
+        if (cantidad == null || cantidad !in 1..100) {
+            Toast.makeText(
+                this,
+                "Ingresa un numero entre 1 y 100",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         progressBar.visibility = ProgressBar.VISIBLE
         btnCargar.isEnabled = false
-        
+        editTextCantidadPosts.isEnabled = false
+
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val posts = withContext(Dispatchers.IO) {
-                    ApiClient.apiService.getAllPosts()
+                    ApiClient.apiService.getPostsByLimit(cantidad)
                 }
-                
+
                 postAdapter.actualizarLista(posts)
                 progressBar.visibility = ProgressBar.GONE
                 btnCargar.isEnabled = true
-                
+                editTextCantidadPosts.isEnabled = true
+
                 Toast.makeText(
                     this@Act1Activity,
                     "Se cargaron ${posts.size} posts",
@@ -62,6 +79,7 @@ class Act1Activity : AppCompatActivity() {
             } catch (e: Exception) {
                 progressBar.visibility = ProgressBar.GONE
                 btnCargar.isEnabled = true
+                editTextCantidadPosts.isEnabled = true
                 Toast.makeText(
                     this@Act1Activity,
                     "Error al cargar los posts: ${e.message}",
